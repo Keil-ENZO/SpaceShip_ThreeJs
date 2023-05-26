@@ -651,7 +651,9 @@ race.load("./assets/road.glb", function(gltf) {
     // Création des murs de chaque côté de la route
     const wallGeometry = new _three.BoxGeometry(wallThickness, 10, totalSegments * segmentDistance);
     const wallMaterial = new _three.MeshBasicMaterial({
-        color: 0x808080
+        color: 0x000000,
+        transparent: false,
+        opacity: 1
     });
     const leftWall = new _three.Mesh(wallGeometry, wallMaterial);
     leftWall.position.x = roadLimits.minX - 3;

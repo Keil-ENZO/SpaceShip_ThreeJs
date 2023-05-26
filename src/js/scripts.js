@@ -119,7 +119,12 @@ race.load("./assets/road.glb", function (gltf) {
     10,
     totalSegments * segmentDistance
   );
-  const wallMaterial = new THREE.MeshBasicMaterial({ color: 0x808080 });
+  const wallMaterial = new THREE.MeshBasicMaterial({
+    color: 0x000000,
+    transparent: false,
+    opacity: 1,
+  });
+
   const leftWall = new THREE.Mesh(wallGeometry, wallMaterial);
   leftWall.position.x = roadLimits.minX - 3;
   leftWall.position.y = 10;
