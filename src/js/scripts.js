@@ -16,7 +16,14 @@ const scene = new THREE.Scene();
 
 // ajout d'un background
 const loaderTexture = new THREE.TextureLoader();
-const bgTexture = loaderTexture.load(space);
+const bgTexture = loaderTexture.load([
+  space,
+  space,
+  space,
+  space,
+  space,
+  space,
+]);
 scene.background = bgTexture;
 
 // ajout d'un vehicle
@@ -69,20 +76,63 @@ loader.load("./assets/Striker.glb", function (glb) {
   model.matrixAutoUpdate = false;
   group.add(model);
   scene.add(group);
-  vehicle.position.set(19, 10, -190);
+  vehicle.position.set(-189.6, 8, 5);
   vehicle.setRenderComponent(model, sync);
 });
 
-// ***************************---COLLISION---**********************
+// ***************************---CIRCUIT---**********************
 
-// Creation du circuit
+
 const race = new GLTFLoader();
-race.load("./assets/roadRace.glb", function (gltf) {
-  const circuit = gltf.scene;
-  circuit.matrixAutoUpdate = false;
-  circuit.scale.set(0.5, 0.5, 0.5);
-  scene.add(circuit);
+race.load("./assets/road.glb", function (gltf) {
+  const roadModel = gltf.scene;
+  roadModel.position.set(19, 7, -190);
+
+  const segmentDistance = 10;
+  const totalSegments = 1000;
+  const roadWidth = 10; // Largeur de la route
+  const wallThickness = 1; // Épaisseur des murs
+
+  // Déterminer les limites de la route
+  const roadLimits = {
+    minX: -190 - roadWidth / 2 - wallThickness, // Coordonnée x minimale du mur de gauche
+    maxX: -190 + roadWidth / 2 + wallThickness, // Coordonnée x maximale du mur de droite
+    minZ: 0, // Coordonnée z minimale (début de la route)
+    maxZ: (totalSegments - 1) * segmentDistance, // Coordonnée z maximale (fin de la route)
+  };
+
+  for (let i = 0; i < totalSegments; i++) {
+    const roadInstance = roadModel.clone();
+
+    // Positionnement du segment de route en ligne droite
+    const segmentOffset = i * segmentDistance;
+    roadInstance.position.set(-190, 7, segmentOffset);
+
+    roadInstance.rotateY(Math.PI / 2);
+
+    scene.add(roadInstance);
+  }
+
+  // Création des murs de chaque côté de la route
+  const wallGeometry = new THREE.BoxGeometry(
+    wallThickness,
+    10,
+    totalSegments * segmentDistance
+  );
+  const wallMaterial = new THREE.MeshBasicMaterial({ color: 0x808080 });
+  const leftWall = new THREE.Mesh(wallGeometry, wallMaterial);
+  leftWall.position.x = roadLimits.minX - 3;
+  leftWall.position.y = 10;
+  scene.add(leftWall);
+  const rightWall = new THREE.Mesh(wallGeometry, wallMaterial);
+  rightWall.position.x = roadLimits.maxX + 3;
+  rightWall.position.y = 10;
+  scene.add(rightWall);
 });
+
+
+
+
 // ***************************************************************
 // plane pour que le vehicle ne tombe pas
 const planeGeo = new THREE.PlaneGeometry(25, 25);
@@ -92,18 +142,26 @@ planeMesh.position.x = -Math.PI / 2;
 scene.add(planeMesh);
 planeMesh.name = "plane";
 
-// ***************************---VISION---**********************
-// // Exemple d'écouteur d'événements pour la souris
+// ***************************---Mouse VISION---**********************
+// Exemple d'écouteur d'événements pour la souris
 // document.addEventListener("mousemove", handleMouseMove);
 
-// function handleMouseMove(e) {
-//   // le vehicle suit la souris
-//   vehicle.position.x = e.clientX;
-//   vehicle.position.y = e.clientY;
-//   vehicle.rotation.x = 0;
-//   vehicle.rotation.y = 0;
+// // vu 360 du decord avec le vehicle
+// function handleMouseMove(event) {
+//   const x = event.clientX;
+//   const y = event.clientY;
+//   const z = event.clientZ;
 
-//   console.log(e.clientX, e.clientY);
+//   vehicle.position.x = x;
+//   vehicle.position.y = y;
+//   vehicle.position.z = z;
+
+//   camera.position.x = x;
+//   camera.position.y = y;
+//   camera.position.z = z;
+
+//   // camera.lookAt(scene.position);
+
 // }
 
 // *************************************************************
@@ -148,6 +206,9 @@ function handleKeyUp(event) {
   }
 }
 
+
+
+
 function move() {
   var direction = new THREE.Vector3();
   if (movement.right) {
@@ -163,16 +224,18 @@ function move() {
     vehicle.position.x += 0.2;
   }
   if (movement.down) {
-    direction.z -= 1;
+    // direction.z -= 1;
+    vehicle.position.z -= 0.5;
   }
   if (movement.up) {
-    direction.z += 1;
+    // direction.z += 1;
+    vehicle.position.z += 0.5;
   }
 
   direction.normalize();
 
   direction.multiplyScalar(movementSpeed);
-  vehicle.position.add(direction);
+  // vehicle.position.add(direction);
 
   if (movement.left || movement.right || movement.up || movement.down) {
     requestAnimationFrame(move);
@@ -199,10 +262,15 @@ function animate(t) {
 
 renderer.setAnimationLoop(animate);
 
+
+
+
+// ecouteur d'evenement pour les touches du clavier
 window.addEventListener("keydown", function (e) {
   handleKeyDown(e);
 });
 
+// ecouteur d'evenement pour les touches du clavier
 window.addEventListener("keyup", function (e) {
   handleKeyUp(e);
 });
