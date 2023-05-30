@@ -584,6 +584,22 @@ const bgTexture = loaderTexture.load([
     (0, _backJpgDefault.default)
 ]);
 scene.background = bgTexture;
+let segmentDistance = 10;
+let totalSegments = 500;
+let roadWidth = 10;
+let wallThickness = 1;
+// Déterminer les limites de la route
+let roadLimits = {
+    minX: -190 - roadWidth / 2 - wallThickness,
+    maxX: -190 + roadWidth / 2 + wallThickness,
+    minZ: 0,
+    maxZ: (totalSegments - 1) * segmentDistance
+};
+let startTime = 0; // Temps de départ
+let endTime = 0; // Temps de fin
+let isRaceStarted = false; // Indicateur de début de course
+let isRaceFinished = false; // Indicateur de fin de course
+let raceElapsedTime = 0; // Temps écoulé depuis le début de la course
 // ajout d'un vehicle
 const vehicle = new (0, _yuka.Vehicle)();
 vehicle.scale.set(0.5, 0.5, 0.5);
@@ -629,17 +645,6 @@ const race = new (0, _gltfloader.GLTFLoader)();
 race.load("./assets/road.glb", function(gltf) {
     const roadModel = gltf.scene;
     roadModel.position.set(19, 7, -190);
-    const segmentDistance = 10;
-    const totalSegments = 1000;
-    const roadWidth = 10; // Largeur de la route
-    const wallThickness = 1; // Épaisseur des murs
-    // Déterminer les limites de la route
-    const roadLimits = {
-        minX: -190 - roadWidth / 2 - wallThickness,
-        maxX: -190 + roadWidth / 2 + wallThickness,
-        minZ: 0,
-        maxZ: (totalSegments - 1) * segmentDistance
-    };
     for(let i = 0; i < totalSegments; i++){
         const roadInstance = roadModel.clone();
         // Positionnement du segment de route en ligne droite
@@ -664,6 +669,28 @@ race.load("./assets/road.glb", function(gltf) {
     rightWall.position.y = 10;
     scene.add(rightWall);
 });
+// creation d'obsacles pneu
+const obstacle = new (0, _gltfloader.GLTFLoader)();
+obstacle.load("./assets/pneu.glb", function(gltf) {
+    const obstacleModel = gltf.scene;
+    const totalPneu = 50;
+    const segmentPneu = 50;
+    const minObstacleOffset = -roadWidth / 2; // Offset minimal pour la position de l'obstacle
+    const maxObstacleOffset = roadWidth / 2; // Offset maximal pour la position de l'obstacle
+    for(let i = 0; i < totalPneu; i++){
+        const obstacleInstance = obstacleModel.clone();
+        // Positionnement du segment de route en ligne droite
+        const segmentOffset = i * segmentPneu;
+        obstacleInstance.position.set(-190, 8, segmentOffset);
+        // Génération de coordonnées aléatoires pour l'obstacle
+        const obstacleX = Math.random() * (maxObstacleOffset - minObstacleOffset) + minObstacleOffset;
+        const obstacleZ = segmentOffset;
+        obstacleInstance.position.x += obstacleX;
+        obstacleInstance.position.z += obstacleZ;
+        obstacleInstance.rotateY(Math.PI / 2);
+        scene.add(obstacleInstance);
+    }
+});
 // ***************************************************************
 // plane pour que le vehicle ne tombe pas
 const planeGeo = new _three.PlaneGeometry(25, 25);
@@ -674,23 +701,6 @@ const planeMesh = new _three.Mesh(planeGeo, planeMat);
 planeMesh.position.x = -Math.PI / 2;
 scene.add(planeMesh);
 planeMesh.name = "plane";
-// ***************************---Mouse VISION---**********************
-// Exemple d'écouteur d'événements pour la souris
-// document.addEventListener("mousemove", handleMouseMove);
-// // vu 360 du decord avec le vehicle
-// function handleMouseMove(event) {
-//   const x = event.clientX;
-//   const y = event.clientY;
-//   const z = event.clientZ;
-//   vehicle.position.x = x;
-//   vehicle.position.y = y;
-//   vehicle.position.z = z;
-//   camera.position.x = x;
-//   camera.position.y = y;
-//   camera.position.z = z;
-//   // camera.lookAt(scene.position);
-// }
-// *************************************************************
 // function pour gerer les touches du clavier et le mouvement du vehicle
 function handleKeyDown(event) {
     if (event.key === "ArrowLeft" && !movement.left) {
@@ -725,6 +735,7 @@ function handleKeyUp(event) {
     if (event.key === "ArrowUp") movement.up = false;
     if (event.key === "ArrowDown") movement.down = false;
 }
+// fonction pour le mouvement du vehicle
 function move() {
     var direction = new _three.Vector3();
     if (movement.right) {
@@ -747,8 +758,8 @@ function move() {
     direction.multiplyScalar(movementSpeed);
     // vehicle.position.add(direction);
     if (movement.left || movement.right || movement.up || movement.down) requestAnimationFrame(move);
-    console.log(vehicle.rotation);
-    console.log("vehicule", vehicle.position);
+// console.log(vehicle.rotation);
+// console.log("vehicule", vehicle.position);
 }
 const time = new _yuka.Time();
 // animation du vehicle et de la camera
@@ -757,12 +768,33 @@ function animate(t) {
     entityManager.update(delta);
     group.position.y = 0.2 * Math.sin(t / 500);
     camera.position.copy(vehicle.position).add(new _three.Vector3(0, 3, -8));
+    if (vehicle.position.z >= roadLimits.maxZ && !isRaceFinished) {
+        endTime = Date.now(); // Enregistrer le temps de fin
+        isRaceFinished = true; // Indiquer que la course est terminée
+        const raceTime = endTime - startTime;
+        updateRaceTime(raceTime); // Mettre à jour l'affichage du temps
+    }
     renderer.render(scene, camera);
 }
 renderer.setAnimationLoop(animate);
+function updateRaceTime(time) {
+    const minutes = Math.floor(time / 60000);
+    const seconds = Math.floor(time % 60000 / 1000);
+    const milliseconds = Math.floor(time % 1000 / 10);
+    const formattedTime = `${minutes}:${padNumber(seconds, 2)}.${padNumber(milliseconds, 2)}`;
+    document.getElementById("race-time").textContent = formattedTime;
+}
+function padNumber(number, length) {
+    return number.toString().padStart(length, "0");
+}
 // ecouteur d'evenement pour les touches du clavier
 window.addEventListener("keydown", function(e) {
     handleKeyDown(e);
+    if (!isRaceStarted) {
+        startTime = Date.now(); // Enregistrer le temps de départ
+        isRaceStarted = true; // Indiquer que la course a commencé
+        console.log("La course a commenc\xe9 !");
+    }
 });
 // ecouteur d'evenement pour les touches du clavier
 window.addEventListener("keyup", function(e) {
