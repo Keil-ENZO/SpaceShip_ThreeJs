@@ -294,6 +294,7 @@ function updateRaceTime(time) {
     2
   )}`;
   document.getElementById("race-time").textContent = formattedTime;
+  this.document.getElementById("msg").textContent = "La course est fini !";
 }
 
 function padNumber(number, length) {
@@ -305,7 +306,10 @@ window.addEventListener("keydown", function (e) {
   if (!isRaceStarted) {
     startTime = Date.now(); // Enregistrer le temps de départ
     isRaceStarted = true; // Indiquer que la course a commencé
-    console.log("La course a commencé !");
+    this.setTimeout(() => {
+      this.document.getElementById("msg").textContent = "";
+    }, 1000);
+    this.document.getElementById("msg").textContent = "La course a commencé !";
   }
 });
 

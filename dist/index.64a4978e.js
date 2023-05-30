@@ -783,6 +783,7 @@ function updateRaceTime(time) {
     const milliseconds = Math.floor(time % 1000 / 10);
     const formattedTime = `${minutes}:${padNumber(seconds, 2)}.${padNumber(milliseconds, 2)}`;
     document.getElementById("race-time").textContent = formattedTime;
+    this.document.getElementById("msg").textContent = "La course est fini !";
 }
 function padNumber(number, length) {
     return number.toString().padStart(length, "0");
@@ -793,7 +794,10 @@ window.addEventListener("keydown", function(e) {
     if (!isRaceStarted) {
         startTime = Date.now(); // Enregistrer le temps de départ
         isRaceStarted = true; // Indiquer que la course a commencé
-        console.log("La course a commenc\xe9 !");
+        this.setTimeout(()=>{
+            this.document.getElementById("msg").textContent = "";
+        }, 1000);
+        this.document.getElementById("msg").textContent = "La course a commenc\xe9 !";
     }
 });
 // ecouteur d'evenement pour les touches du clavier
